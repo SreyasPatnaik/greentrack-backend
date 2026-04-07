@@ -12,7 +12,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Disable CSRF for testing
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow signup/login APIs
+                        .requestMatchers("/", "/api/auth/**").permitAll() // Allow root and signup/login APIs
                         .anyRequest().authenticated() // Others need authentication
                 );
         return http.build();
