@@ -39,13 +39,12 @@ public class WasteReportController {
 
     @PostMapping("/submit")
     public ResponseEntity<?> submitReport(@RequestBody ReportRequest request) {
-        if (request.userId == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "User ID is required for non-anonymous reports"));
-        }
-
-        User user = userRepository.findById(request.userId).orElse(null);
-        if (user == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+        User user = null;
+        if (request.userId != null) {
+            user = userRepository.findById(request.userId).orElse(null);
+            if (user == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+            }
         }
 
         // Create and save WasteReport
@@ -57,29 +56,36 @@ public class WasteReportController {
         report.setLocationData(request.locationData);
         wasteReportRepository.save(report);
 
-        // Determine coins based on waste type
-        int coinsToAward = 20; // Default
-        String type = request.wasteType != null ? request.wasteType.toLowerCase() : "";
-        if (type.contains("plastic")) coinsToAward = 30;
-        else if (type.contains("e-waste") || type.contains("medical")) coinsToAward = 50;
-        else if (type.contains("dumping") || type.contains("high")) coinsToAward = 75;
+        int coinsToAward = 0;
+        int newTotalCoins = 0;
 
-        // Update user's coin balance
-        user.setGreenCoins(user.getGreenCoins() + coinsToAward);
-        userRepository.save(user);
+        if (user != null) {
+            // Determine coins based on waste type
+            coinsToAward = 20; // Default
+            String type = request.wasteType != null ? request.wasteType.toLowerCase() : "";
+            if (type.contains("plastic")) coinsToAward = 30;
+            else if (type.contains("e-waste") || type.contains("medical")) coinsToAward = 50;
+            else if (type.contains("dumping") || type.contains("high")) coinsToAward = 75;
 
-        // Record the transaction
-        CoinTransaction transaction = new CoinTransaction();
-        transaction.setUser(user);
-        transaction.setAmount(coinsToAward);
-        transaction.setReason("Reported " + request.wasteType + " Waste");
-        transaction.setTimestamp(LocalDateTime.now());
-        coinTransactionRepository.save(transaction);
+            // Update user's coin balance
+            user.setGreenCoins(user.getGreenCoins() + coinsToAward);
+            userRepository.save(user);
+
+            // Record the transaction
+            CoinTransaction transaction = new CoinTransaction();
+            transaction.setUser(user);
+            transaction.setAmount(coinsToAward);
+            transaction.setReason("Reported " + request.wasteType + " Waste");
+            transaction.setTimestamp(LocalDateTime.now());
+            coinTransactionRepository.save(transaction);
+            
+            newTotalCoins = user.getGreenCoins();
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Report submitted successfully");
         response.put("coinsEarned", coinsToAward);
-        response.put("newTotalCoins", user.getGreenCoins());
+        response.put("newTotalCoins", newTotalCoins);
         return ResponseEntity.ok(response);
     }
 }
