@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: greentrack-backend
+    env: java
+    buildCommand: mvn clean install
+    startCommand: java -jar target/*.jar
