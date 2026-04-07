@@ -1,6 +1,12 @@
 services:
   - type: web
     name: greentrack-backend
-    env: java
-    buildCommand: mvn clean install
-    startCommand: java -jar target/*.jar
+    env: docker
+    envVars:
+      # Inject Cloud Database credentials using environment variables
+      - key: DB_URL
+        value: "jdbc:mysql://YOUR_CLOUD_DB_HOST:3306/GreenTrack?useSSL=false&allowPublicKeyRetrieval=true"
+      - key: DB_USERNAME
+        value: "admin"
+      - key: DB_PASSWORD
+        sync: false # Treat passwords as securely hidden locally
