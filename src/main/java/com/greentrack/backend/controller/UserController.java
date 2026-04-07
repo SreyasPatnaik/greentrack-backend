@@ -34,6 +34,7 @@ public class UserController {
         response.put("message", "Signup successful!");
         response.put("status", true);
         response.put("user", user); // frontend ko user info milega
+        response.put("id", user.getId());
         return response;
     }
 
@@ -67,6 +68,7 @@ public class UserController {
 
         response.put("message", "Login successful!");
         response.put("status", true);
+        response.put("id", user.getId());
         response.put("user", user.getFullName());
         response.put("email", user.getEmail());
         response.put("contactNumber", user.getContactNumber());
