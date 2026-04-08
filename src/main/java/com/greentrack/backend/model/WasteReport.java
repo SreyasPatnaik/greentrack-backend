@@ -25,7 +25,7 @@ public class WasteReport {
     private Integer coinsEarned = 0;
     
     @Lob
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(name = "image_data_base64", columnDefinition = "LONGTEXT")
     private String imageBase64;
 
     @Column(nullable = false, updatable = false)

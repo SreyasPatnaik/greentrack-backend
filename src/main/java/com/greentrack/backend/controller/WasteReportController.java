@@ -30,7 +30,7 @@ public class WasteReportController {
     private CoinTransactionRepository coinTransactionRepository;
 
     public static class ReportRequest {
-        public Long userId;
+        public String userId;
         public String wasteType;
         public String severity;
         public String description;
@@ -41,10 +41,15 @@ public class WasteReportController {
     @PostMapping("/submit")
     public ResponseEntity<?> submitReport(@RequestBody ReportRequest request) {
         User user = null;
-        if (request.userId != null) {
-            user = userRepository.findById(request.userId).orElse(null);
-            if (user == null) {
-                return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+        if (request.userId != null && !request.userId.trim().isEmpty() && !request.userId.equals("undefined")) {
+            try {
+                Long uid = Long.parseLong(request.userId);
+                user = userRepository.findById(uid).orElse(null);
+                if (user == null) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid user ID string: " + request.userId);
             }
         }
 
