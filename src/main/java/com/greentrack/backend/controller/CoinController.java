@@ -37,4 +37,31 @@ public class CoinController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/deduct/{userId}/{amount}")
+    public ResponseEntity<?> deductCoins(@PathVariable Long userId, @PathVariable Integer amount) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
+        }
+
+        if (user.getGreenCoins() < amount) {
+             return ResponseEntity.badRequest().body(Map.of("message", "Insufficient coin balance"));
+        }
+
+        user.setGreenCoins(user.getGreenCoins() - amount);
+        userRepository.save(user);
+
+        CoinTransaction transaction = new CoinTransaction();
+        transaction.setUser(user);
+        transaction.setAmount(-amount);
+        transaction.setReason("Redeemed at Marketplace checkout");
+        transaction.setTimestamp(java.time.LocalDateTime.now());
+        coinTransactionRepository.save(transaction);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Coins deducted successfully",
+            "newBalance", user.getGreenCoins()
+        ));
+    }
 }

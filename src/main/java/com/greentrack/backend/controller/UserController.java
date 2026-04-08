@@ -8,15 +8,71 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin("*")
 public class UserController {
 
     @Autowired
     private UserRepository userRepository;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    
+    // In-memory mock store for OTPs (Demo only)
+    private static ConcurrentHashMap<String, String> otpStore = new ConcurrentHashMap<>();
+
+    @PostMapping("/send-otp")
+    public Map<String, Object> sendOtp(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        String email = request.get("email");
+        
+        if (email == null || email.isBlank()) {
+            response.put("status", false);
+            response.put("message", "Email is required");
+            return response;
+        }
+
+        // Check if already registered
+        if (userRepository.findByEmail(email).isPresent()) {
+            response.put("status", false);
+            response.put("message", "Email already registered!");
+            return response;
+        }
+
+        // Generate 6-digit Mock OTP
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        otpStore.put(email, otp);
+        
+        // Mock sending by logging it to the console
+        System.out.println("==================================================");
+        System.out.println("MOCK OTP FOR " + email + " IS: " + otp);
+        System.out.println("==================================================");
+
+        response.put("status", true);
+        response.put("message", "OTP sent via email!");
+        return response;
+    }
+
+    @PostMapping("/verify-otp")
+    public Map<String, Object> verifyOtp(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        String storedOtp = otpStore.get(email);
+        if (storedOtp != null && storedOtp.equals(otp)) {
+            otpStore.remove(email); // consume OTP
+            response.put("status", true);
+            response.put("message", "OTP Verified!");
+        } else {
+            response.put("status", false);
+            response.put("message", "Invalid or expired OTP");
+        }
+        return response;
+    }
 
     @PostMapping("/signup")
     public Map<String, Object> signup(@RequestBody User user) {
