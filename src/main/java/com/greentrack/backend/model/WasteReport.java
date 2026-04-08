@@ -20,6 +20,13 @@ public class WasteReport {
     private String severity;
     private String description;
     private String locationData;
+    
+    private String status = "PENDING";
+    private Integer coinsEarned = 0;
+    
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageBase64;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
@@ -44,6 +51,15 @@ public class WasteReport {
 
     public String getLocationData() { return locationData; }
     public void setLocationData(String locationData) { this.locationData = locationData; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public Integer getCoinsEarned() { return coinsEarned; }
+    public void setCoinsEarned(Integer coinsEarned) { this.coinsEarned = coinsEarned; }
+
+    public String getImageBase64() { return imageBase64; }
+    public void setImageBase64(String imageBase64) { this.imageBase64 = imageBase64; }
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }

@@ -17,6 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
+@CrossOrigin("*")
 public class WasteReportController {
 
     @Autowired
@@ -34,6 +35,7 @@ public class WasteReportController {
         public String severity;
         public String description;
         public String locationData;
+        public String imageBase64;
     }
 
     @PostMapping("/submit")
@@ -46,45 +48,77 @@ public class WasteReportController {
             }
         }
 
-        // Create and save WasteReport
         WasteReport report = new WasteReport();
         report.setUser(user);
         report.setWasteType(request.wasteType);
         report.setSeverity(request.severity);
         report.setDescription(request.description);
         report.setLocationData(request.locationData);
+        report.setImageBase64(request.imageBase64);
+        report.setStatus("PENDING");
+
+        int coinsToAward = 20; // Default
+        String type = request.wasteType != null ? request.wasteType.toLowerCase() : "";
+        if (type.contains("plastic")) coinsToAward = 30;
+        else if (type.contains("e-waste") || type.contains("medical")) coinsToAward = 50;
+        else if (type.contains("dumping") || type.contains("high") || (request.severity != null && request.severity.toLowerCase().contains("high"))) coinsToAward = 75;
+        
+        report.setCoinsEarned(coinsToAward);
         wasteReportRepository.save(report);
 
-        int coinsToAward = 0;
-        int newTotalCoins = 0;
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Report submitted for Verification");
+        response.put("coinsExpected", coinsToAward);
+        response.put("status", "PENDING");
+        return ResponseEntity.ok(response);
+    }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getUserReports(@PathVariable Long userId) {
+        List<WasteReport> reports = wasteReportRepository.findByUserIdOrderByTimestampDesc(userId);
+        return ResponseEntity.ok(reports);
+    }
+
+    @GetMapping("/admin/pending")
+    public ResponseEntity<?> getPendingReports() {
+        List<WasteReport> reports = wasteReportRepository.findByStatusOrderByTimestampDesc("PENDING");
+        return ResponseEntity.ok(reports);
+    }
+
+    @PostMapping("/admin/approve/{reportId}")
+    public ResponseEntity<?> approveReport(@PathVariable Long reportId) {
+        WasteReport report = wasteReportRepository.findById(reportId).orElse(null);
+        if (report == null) return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
+        if (!"PENDING".equals(report.getStatus())) return ResponseEntity.badRequest().body(Map.of("message", "Already processed"));
+
+        report.setStatus("APPROVED");
+        wasteReportRepository.save(report);
+
+        User user = report.getUser();
         if (user != null) {
-            // Determine coins based on waste type
-            coinsToAward = 20; // Default
-            String type = request.wasteType != null ? request.wasteType.toLowerCase() : "";
-            if (type.contains("plastic")) coinsToAward = 30;
-            else if (type.contains("e-waste") || type.contains("medical")) coinsToAward = 50;
-            else if (type.contains("dumping") || type.contains("high")) coinsToAward = 75;
-
-            // Update user's coin balance
-            user.setGreenCoins(user.getGreenCoins() + coinsToAward);
+            user.setGreenCoins(user.getGreenCoins() + report.getCoinsEarned());
             userRepository.save(user);
 
-            // Record the transaction
             CoinTransaction transaction = new CoinTransaction();
             transaction.setUser(user);
-            transaction.setAmount(coinsToAward);
-            transaction.setReason("Reported " + request.wasteType + " Waste");
+            transaction.setAmount(report.getCoinsEarned());
+            transaction.setReason("Report Verification Approved: " + report.getWasteType());
             transaction.setTimestamp(LocalDateTime.now());
             coinTransactionRepository.save(transaction);
-            
-            newTotalCoins = user.getGreenCoins();
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Report submitted successfully");
-        response.put("coinsEarned", coinsToAward);
-        response.put("newTotalCoins", newTotalCoins);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("message", "Report Approved"));
+    }
+
+    @PostMapping("/admin/reject/{reportId}")
+    public ResponseEntity<?> rejectReport(@PathVariable Long reportId) {
+        WasteReport report = wasteReportRepository.findById(reportId).orElse(null);
+        if (report == null) return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
+        if (!"PENDING".equals(report.getStatus())) return ResponseEntity.badRequest().body(Map.of("message", "Already processed"));
+
+        report.setStatus("REJECTED");
+        wasteReportRepository.save(report);
+
+        return ResponseEntity.ok(Map.of("message", "Report Rejected"));
     }
 }
