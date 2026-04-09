@@ -167,6 +167,21 @@ public class UserController {
             user = userRepository.findByEmailAndContactNumber(email, plainContact).orElse(null);
         }
 
+        // Fallback: Try finding by contactNumber alone (for phone-based recovery)
+        if (user == null) {
+            user = userRepository.findByContactNumber(normalizedContact).orElse(null);
+
+            // Also try with +91 prefix
+            if (user == null && !normalizedContact.startsWith("+91")) {
+                user = userRepository.findByContactNumber("+91" + normalizedContact).orElse(null);
+            }
+            
+            // Also try without +91 prefix
+            if (user == null && normalizedContact.startsWith("+91")) {
+                user = userRepository.findByContactNumber(normalizedContact.substring(3)).orElse(null);
+            }
+        }
+
         // If still not found, send error
         if (user == null) {
             response.put("status", false);
