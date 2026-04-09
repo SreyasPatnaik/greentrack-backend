@@ -37,6 +37,12 @@ public class WasteReport {
     @Column(nullable = false, updatable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
 
+    @Column(columnDefinition = "boolean default false")
+    private Boolean hiddenByUser = false;
+
+    @Column(columnDefinition = "boolean default false")
+    private Boolean hiddenByAdmin = false;
+
     public WasteReport() {}
 
     // Getters and Setters
@@ -78,4 +84,10 @@ public class WasteReport {
 
     public String getCleanupStatus() { return cleanupStatus; }
     public void setCleanupStatus(String cleanupStatus) { this.cleanupStatus = cleanupStatus; }
+
+    public Boolean getHiddenByUser() { return hiddenByUser; }
+    public void setHiddenByUser(Boolean hiddenByUser) { this.hiddenByUser = hiddenByUser; }
+
+    public Boolean getHiddenByAdmin() { return hiddenByAdmin; }
+    public void setHiddenByAdmin(Boolean hiddenByAdmin) { this.hiddenByAdmin = hiddenByAdmin; }
 }

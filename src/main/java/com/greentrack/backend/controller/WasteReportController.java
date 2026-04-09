@@ -188,11 +188,12 @@ public class WasteReportController {
             return ResponseEntity.status(403).body(Map.of("message", "Unauthorized: You can only delete your own reports"));
         }
 
-        // User KEEPS their coins — we only delete the report record to reduce DB load
-        wasteReportRepository.delete(report);
+        // User hides the report from their tracker — but we preserve the DB record for metrics
+        report.setHiddenByUser(true);
+        wasteReportRepository.save(report);
 
         return ResponseEntity.ok(Map.of(
-            "message", "Report deleted successfully",
+            "message", "Report hidden from tracker",
             "coinsDeducted", 0
         ));
     }
@@ -206,7 +207,10 @@ public class WasteReportController {
             return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
         }
 
-        wasteReportRepository.delete(report);
-        return ResponseEntity.ok(Map.of("message", "Report deleted by admin"));
+        // Admin hides the report from the admin workflow without deleting metrics
+        report.setHiddenByAdmin(true);
+        wasteReportRepository.save(report);
+
+        return ResponseEntity.ok(Map.of("message", "Report hidden from admin workflow"));
     }
 }

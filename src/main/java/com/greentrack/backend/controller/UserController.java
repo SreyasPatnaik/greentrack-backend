@@ -222,6 +222,7 @@ public class UserController {
         response.put("city", user.getCity());
         response.put("bio", user.getBio());
         response.put("profileImageBase64", user.getProfileImageBase64());
+        response.put("coverImageBase64", user.getCoverImageBase64());
         response.put("volunteerBadge", user.isVolunteerBadge());
         return response;
     }
@@ -249,6 +250,7 @@ public class UserController {
         if (profileData.containsKey("city")) user.setCity((String) profileData.get("city"));
         if (profileData.containsKey("bio")) user.setBio((String) profileData.get("bio"));
         if (profileData.containsKey("profileImageBase64")) user.setProfileImageBase64((String) profileData.get("profileImageBase64"));
+        if (profileData.containsKey("coverImageBase64")) user.setCoverImageBase64((String) profileData.get("coverImageBase64"));
 
         userRepository.save(user);
 

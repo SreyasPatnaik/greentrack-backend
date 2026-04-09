@@ -31,6 +31,10 @@ public class User {
     @Column(name = "profile_image_base64", columnDefinition = "LONGTEXT")
     private String profileImageBase64;
 
+    @Lob
+    @Column(name = "cover_image_base64", columnDefinition = "LONGTEXT")
+    private String coverImageBase64;
+
     @Column(columnDefinition = "boolean default false")
     private boolean volunteerBadge = false;
 
@@ -81,6 +85,9 @@ public class User {
 
     public String getProfileImageBase64() { return profileImageBase64; }
     public void setProfileImageBase64(String profileImageBase64) { this.profileImageBase64 = profileImageBase64; }
+
+    public String getCoverImageBase64() { return coverImageBase64; }
+    public void setCoverImageBase64(String coverImageBase64) { this.coverImageBase64 = coverImageBase64; }
 
     public boolean isVolunteerBadge() { return volunteerBadge; }
     public void setVolunteerBadge(boolean volunteerBadge) { this.volunteerBadge = volunteerBadge; }
