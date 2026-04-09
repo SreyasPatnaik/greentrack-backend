@@ -97,6 +97,7 @@ public class WasteReportController {
         if (!"PENDING".equals(report.getStatus())) return ResponseEntity.badRequest().body(Map.of("message", "Already processed"));
 
         report.setStatus("APPROVED");
+        report.setCleanupStatus("PROCESSING");
         wasteReportRepository.save(report);
 
         User user = report.getUser();
@@ -125,5 +126,32 @@ public class WasteReportController {
         wasteReportRepository.save(report);
 
         return ResponseEntity.ok(Map.of("message", "Report Rejected"));
+    }
+
+    @GetMapping("/admin/approved")
+    public ResponseEntity<?> getApprovedReports() {
+        List<WasteReport> reports = wasteReportRepository.findByStatusOrderByTimestampDesc("APPROVED");
+        return ResponseEntity.ok(reports);
+    }
+
+    public static class CleanupStatusRequest {
+        public String cleanupStatus;
+    }
+
+    @PostMapping("/admin/cleanup-status/{reportId}")
+    public ResponseEntity<?> updateCleanupStatus(@PathVariable Long reportId, @RequestBody CleanupStatusRequest request) {
+        WasteReport report = wasteReportRepository.findById(reportId).orElse(null);
+        if (report == null) return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
+        if (!"APPROVED".equals(report.getStatus())) return ResponseEntity.badRequest().body(Map.of("message", "Report is not approved"));
+
+        String newStatus = request.cleanupStatus;
+        if (!"PROCESSING".equals(newStatus) && !"ASSIGNED".equals(newStatus) && !"CLEANED".equals(newStatus)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid cleanup status"));
+        }
+
+        report.setCleanupStatus(newStatus);
+        wasteReportRepository.save(report);
+
+        return ResponseEntity.ok(Map.of("message", "Cleanup status updated to " + newStatus));
     }
 }

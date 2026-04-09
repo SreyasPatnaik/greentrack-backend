@@ -23,6 +23,8 @@ public class WasteReport {
     
     private String status = "PENDING";
     private Integer coinsEarned = 0;
+
+    private String cleanupStatus; // null -> PROCESSING -> ASSIGNED -> CLEANED
     
     @Lob
     @Column(name = "image_data_base64", columnDefinition = "LONGTEXT")
@@ -63,4 +65,7 @@ public class WasteReport {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public String getCleanupStatus() { return cleanupStatus; }
+    public void setCleanupStatus(String cleanupStatus) { this.cleanupStatus = cleanupStatus; }
 }
