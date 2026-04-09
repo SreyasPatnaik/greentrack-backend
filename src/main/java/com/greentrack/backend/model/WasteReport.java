@@ -11,7 +11,7 @@ public class WasteReport {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = true)
     @JsonIgnore
     private User user;
@@ -20,6 +20,10 @@ public class WasteReport {
     private String severity;
     private String description;
     private String locationData;
+    
+    // Precise GPS coordinates for map pinning
+    private Double latitude;
+    private Double longitude;
     
     private String status = "PENDING";
     private Integer coinsEarned = 0;
@@ -53,6 +57,12 @@ public class WasteReport {
 
     public String getLocationData() { return locationData; }
     public void setLocationData(String locationData) { this.locationData = locationData; }
+
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

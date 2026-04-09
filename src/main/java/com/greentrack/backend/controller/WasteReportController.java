@@ -37,6 +37,8 @@ public class WasteReportController {
         public String description;
         public String locationData;
         public String imageBase64;
+        public Double latitude;
+        public Double longitude;
     }
 
     @PostMapping("/submit")
@@ -62,6 +64,21 @@ public class WasteReportController {
         report.setLocationData(request.locationData);
         report.setImageBase64(request.imageBase64);
         report.setStatus("PENDING");
+
+        // Store precise GPS coordinates for map pinning
+        if (request.latitude != null && request.longitude != null) {
+            report.setLatitude(request.latitude);
+            report.setLongitude(request.longitude);
+        } else if (request.locationData != null) {
+            // Fallback: parse from locationData string
+            try {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("Lat\\s*([-\\d.]+),?\\s*Lng\\s*([-\\d.]+)").matcher(request.locationData);
+                if (m.find()) {
+                    report.setLatitude(Double.parseDouble(m.group(1)));
+                    report.setLongitude(Double.parseDouble(m.group(2)));
+                }
+            } catch (Exception ignored) {}
+        }
 
         int coinsToAward = 20; // Default
         String type = request.wasteType != null ? request.wasteType.toLowerCase() : "";
@@ -156,7 +173,7 @@ public class WasteReportController {
         return ResponseEntity.ok(Map.of("message", "Cleanup status updated to " + newStatus));
     }
 
-    // ✅ NEW: Delete a waste report (cleanup workflow delete + reduce DB load)
+    // ✅ Delete a waste report (user deletes from cleanup workflow — coins are KEPT)
     @DeleteMapping("/{reportId}")
     @Transactional
     public ResponseEntity<?> deleteReport(@PathVariable Long reportId, @RequestParam Long userId) {
@@ -171,30 +188,25 @@ public class WasteReportController {
             return ResponseEntity.status(403).body(Map.of("message", "Unauthorized: You can only delete your own reports"));
         }
 
-        // If the report was approved and coins were awarded, deduct them
-        if ("APPROVED".equals(report.getStatus()) && report.getCoinsEarned() != null && report.getCoinsEarned() > 0) {
-            User user = userRepository.findById(userId).orElse(null);
-            if (user != null) {
-                int newBalance = Math.max(0, user.getGreenCoins() - report.getCoinsEarned());
-                user.setGreenCoins(newBalance);
-                userRepository.save(user);
-
-                // Delete associated coin transaction(s) for this report type
-                List<CoinTransaction> relatedTransactions = coinTransactionRepository
-                    .findByUserIdAndReasonContaining(userId, report.getWasteType());
-                if (!relatedTransactions.isEmpty()) {
-                    // Delete the first matching transaction (most specific match)
-                    coinTransactionRepository.delete(relatedTransactions.get(0));
-                }
-            }
-        }
-
-        // Delete the report
+        // User KEEPS their coins — we only delete the report record to reduce DB load
         wasteReportRepository.delete(report);
 
         return ResponseEntity.ok(Map.of(
             "message", "Report deleted successfully",
-            "coinsDeducted", ("APPROVED".equals(report.getStatus()) ? report.getCoinsEarned() : 0)
+            "coinsDeducted", 0
         ));
+    }
+
+    // ✅ Admin delete — allows admin to remove any report from cleanup workflow
+    @DeleteMapping("/admin/{reportId}")
+    @Transactional
+    public ResponseEntity<?> adminDeleteReport(@PathVariable Long reportId) {
+        WasteReport report = wasteReportRepository.findById(reportId).orElse(null);
+        if (report == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
+        }
+
+        wasteReportRepository.delete(report);
+        return ResponseEntity.ok(Map.of("message", "Report deleted by admin"));
     }
 }
