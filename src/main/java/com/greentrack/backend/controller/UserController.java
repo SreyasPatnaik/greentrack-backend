@@ -182,6 +182,65 @@ public class UserController {
         response.put("message", "Password updated successfully!");
         return response;
     }
+
+    // =============================
+    // Get User Profile (public)
+    // =============================
+    @GetMapping("/profile/{userId}")
+    public Map<String, Object> getProfile(@PathVariable Long userId) {
+        Map<String, Object> response = new HashMap<>();
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            response.put("status", false);
+            response.put("message", "User not found");
+            return response;
+        }
+        response.put("status", true);
+        response.put("id", user.getId());
+        response.put("fullName", user.getFullName());
+        response.put("email", user.getEmail());
+        response.put("contactNumber", user.getContactNumber());
+        response.put("greenCoins", user.getGreenCoins());
+        response.put("age", user.getAge());
+        response.put("gender", user.getGender());
+        response.put("profession", user.getProfession());
+        response.put("city", user.getCity());
+        response.put("bio", user.getBio());
+        response.put("profileImageBase64", user.getProfileImageBase64());
+        response.put("volunteerBadge", user.isVolunteerBadge());
+        return response;
+    }
+
+    // =============================
+    // Update User Profile
+    // =============================
+    @PutMapping("/profile/{userId}")
+    public Map<String, Object> updateProfile(@PathVariable Long userId, @RequestBody Map<String, Object> profileData) {
+        Map<String, Object> response = new HashMap<>();
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            response.put("status", false);
+            response.put("message", "User not found");
+            return response;
+        }
+
+        if (profileData.containsKey("fullName")) user.setFullName((String) profileData.get("fullName"));
+        if (profileData.containsKey("age")) {
+            Object ageObj = profileData.get("age");
+            if (ageObj instanceof Number) user.setAge(((Number) ageObj).intValue());
+        }
+        if (profileData.containsKey("gender")) user.setGender((String) profileData.get("gender"));
+        if (profileData.containsKey("profession")) user.setProfession((String) profileData.get("profession"));
+        if (profileData.containsKey("city")) user.setCity((String) profileData.get("city"));
+        if (profileData.containsKey("bio")) user.setBio((String) profileData.get("bio"));
+        if (profileData.containsKey("profileImageBase64")) user.setProfileImageBase64((String) profileData.get("profileImageBase64"));
+
+        userRepository.save(user);
+
+        response.put("status", true);
+        response.put("message", "Profile updated successfully!");
+        return response;
+    }
 }
 
 

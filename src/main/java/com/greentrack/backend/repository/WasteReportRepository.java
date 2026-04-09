@@ -11,4 +11,5 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Long> 
     List<WasteReport> findByUserId(Long userId);
     List<WasteReport> findByStatusOrderByTimestampDesc(String status);
     List<WasteReport> findByUserIdOrderByTimestampDesc(Long userId);
+    Long countByUserIdAndStatus(Long userId, String status);
 }

@@ -1,6 +1,7 @@
 package com.greentrack.backend.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -16,6 +17,24 @@ public class User {
     
     @Column(columnDefinition = "int default 0")
     private int greenCoins = 0;
+
+    // Profile fields
+    private Integer age;
+    private String gender;
+    private String profession;
+    private String city;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Lob
+    @Column(name = "profile_image_base64", columnDefinition = "LONGTEXT")
+    private String profileImageBase64;
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean volunteerBadge = false;
+
+    private LocalDateTime rank1Since;
 
     public User() {}
 
@@ -44,5 +63,28 @@ public class User {
 
     public int getGreenCoins() { return greenCoins; }
     public void setGreenCoins(int greenCoins) { this.greenCoins = greenCoins; }
-}
 
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
+
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
+
+    public String getProfession() { return profession; }
+    public void setProfession(String profession) { this.profession = profession; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getProfileImageBase64() { return profileImageBase64; }
+    public void setProfileImageBase64(String profileImageBase64) { this.profileImageBase64 = profileImageBase64; }
+
+    public boolean isVolunteerBadge() { return volunteerBadge; }
+    public void setVolunteerBadge(boolean volunteerBadge) { this.volunteerBadge = volunteerBadge; }
+
+    public LocalDateTime getRank1Since() { return rank1Since; }
+    public void setRank1Since(LocalDateTime rank1Since) { this.rank1Since = rank1Since; }
+}
