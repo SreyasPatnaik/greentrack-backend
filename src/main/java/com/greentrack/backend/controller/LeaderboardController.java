@@ -34,30 +34,40 @@ public class LeaderboardController {
             approvedCountMap.put(userId, count);
         }
 
+        // ✅ Fetch total report counts (all statuses) for display
+        List<Object[]> totalResults = wasteReportRepository.countAllReportsGroupedByUser();
+        Map<Long, Long> totalCountMap = new HashMap<>();
+        for (Object[] row : totalResults) {
+            Long userId = (Long) row[0];
+            Long count = (Long) row[1];
+            totalCountMap.put(userId, count);
+        }
+
         // Build leaderboard entries — no per-user DB query needed
         List<Map<String, Object>> leaderboard = new ArrayList<>();
 
         for (User user : allUsers) {
             Long approvedCount = approvedCountMap.getOrDefault(user.getId(), 0L);
+            Long totalReports = totalCountMap.getOrDefault(user.getId(), 0L);
 
             Map<String, Object> entry = new HashMap<>();
             entry.put("userId", user.getId());
             entry.put("fullName", user.getFullName());
             entry.put("approvedReports", approvedCount);
+            entry.put("totalReports", totalReports);
             entry.put("greenCoins", user.getGreenCoins());
             entry.put("volunteerBadge", user.isVolunteerBadge());
             entry.put("city", user.getCity());
             entry.put("profession", user.getProfession());
-            // ✅ OPTIMIZED: Exclude heavy profileImageBase64 from leaderboard response
-            // Profile images are loaded on-demand when a user clicks into a profile
+            entry.put("profileImageBase64", user.getProfileImageBase64());
             leaderboard.add(entry);
         }
 
-        // Sort by approved reports (descending), then by greenCoins (descending)
+        // Sort by greenCoins (descending) — coins represent actual earned contributions
         leaderboard.sort((a, b) -> {
-            int cmp = Long.compare((Long) b.get("approvedReports"), (Long) a.get("approvedReports"));
+            int cmp = Integer.compare((Integer) b.get("greenCoins"), (Integer) a.get("greenCoins"));
             if (cmp != 0) return cmp;
-            return Integer.compare((Integer) b.get("greenCoins"), (Integer) a.get("greenCoins"));
+            return Long.compare((Long) b.get("totalReports"), (Long) a.get("totalReports"));
         });
 
         // Assign ranks
