@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface CoinTransactionRepository extends JpaRepository<CoinTransaction, Long> {
     List<CoinTransaction> findByUserIdOrderByTimestampDesc(Long userId);
+    List<CoinTransaction> findByUserIdAndReasonContaining(Long userId, String reasonFragment);
+    void deleteAllByUserIdAndReasonContaining(Long userId, String reasonFragment);
 }

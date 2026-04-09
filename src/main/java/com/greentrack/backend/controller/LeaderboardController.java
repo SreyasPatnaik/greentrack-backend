@@ -25,12 +25,20 @@ public class LeaderboardController {
     public List<Map<String, Object>> getLeaderboard() {
         List<User> allUsers = userRepository.findAll();
 
-        // Build leaderboard entries with approved report counts
+        // ✅ OPTIMIZED: Fetch ALL approved report counts in a SINGLE query (eliminates N+1)
+        List<Object[]> countResults = wasteReportRepository.countApprovedReportsGroupedByUser();
+        Map<Long, Long> approvedCountMap = new HashMap<>();
+        for (Object[] row : countResults) {
+            Long userId = (Long) row[0];
+            Long count = (Long) row[1];
+            approvedCountMap.put(userId, count);
+        }
+
+        // Build leaderboard entries — no per-user DB query needed
         List<Map<String, Object>> leaderboard = new ArrayList<>();
 
         for (User user : allUsers) {
-            Long approvedCount = wasteReportRepository.countByUserIdAndStatus(user.getId(), "APPROVED");
-            if (approvedCount == null) approvedCount = 0L;
+            Long approvedCount = approvedCountMap.getOrDefault(user.getId(), 0L);
 
             Map<String, Object> entry = new HashMap<>();
             entry.put("userId", user.getId());
@@ -40,7 +48,8 @@ public class LeaderboardController {
             entry.put("volunteerBadge", user.isVolunteerBadge());
             entry.put("city", user.getCity());
             entry.put("profession", user.getProfession());
-            entry.put("profileImageBase64", user.getProfileImageBase64());
+            // ✅ OPTIMIZED: Exclude heavy profileImageBase64 from leaderboard response
+            // Profile images are loaded on-demand when a user clicks into a profile
             leaderboard.add(entry);
         }
 
@@ -51,7 +60,7 @@ public class LeaderboardController {
             return Integer.compare((Integer) b.get("greenCoins"), (Integer) a.get("greenCoins"));
         });
 
-        // Assign ranks and handle volunteer badge logic
+        // Assign ranks
         for (int i = 0; i < leaderboard.size(); i++) {
             leaderboard.get(i).put("rank", i + 1);
         }
@@ -80,13 +89,24 @@ public class LeaderboardController {
                 }
             }
 
-            // Reset rank1Since for users who are no longer rank 1
+            // ✅ OPTIMIZED: Only reset rank1Since for users who actually have it set
+            // Batch collect IDs first, then update only those that need it
+            List<Long> userIdsToReset = new ArrayList<>();
             for (int i = 1; i < leaderboard.size(); i++) {
-                Long userId = (Long) leaderboard.get(i).get("userId");
-                User user = userRepository.findById(userId).orElse(null);
-                if (user != null && user.getRank1Since() != null) {
-                    user.setRank1Since(null);
-                    userRepository.save(user);
+                userIdsToReset.add((Long) leaderboard.get(i).get("userId"));
+            }
+
+            if (!userIdsToReset.isEmpty()) {
+                List<User> usersToCheck = userRepository.findAllById(userIdsToReset);
+                List<User> usersToSave = new ArrayList<>();
+                for (User user : usersToCheck) {
+                    if (user.getRank1Since() != null) {
+                        user.setRank1Since(null);
+                        usersToSave.add(user);
+                    }
+                }
+                if (!usersToSave.isEmpty()) {
+                    userRepository.saveAll(usersToSave);
                 }
             }
         }

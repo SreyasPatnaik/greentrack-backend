@@ -9,6 +9,7 @@ import com.greentrack.backend.repository.WasteReportRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -153,5 +154,47 @@ public class WasteReportController {
         wasteReportRepository.save(report);
 
         return ResponseEntity.ok(Map.of("message", "Cleanup status updated to " + newStatus));
+    }
+
+    // ✅ NEW: Delete a waste report (cleanup workflow delete + reduce DB load)
+    @DeleteMapping("/{reportId}")
+    @Transactional
+    public ResponseEntity<?> deleteReport(@PathVariable Long reportId, @RequestParam Long userId) {
+        WasteReport report = wasteReportRepository.findById(reportId).orElse(null);
+        if (report == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Report not found"));
+        }
+
+        // Validate ownership — the requesting user must own this report
+        User reportOwner = report.getUser();
+        if (reportOwner == null || !reportOwner.getId().equals(userId)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Unauthorized: You can only delete your own reports"));
+        }
+
+        // If the report was approved and coins were awarded, deduct them
+        if ("APPROVED".equals(report.getStatus()) && report.getCoinsEarned() != null && report.getCoinsEarned() > 0) {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                int newBalance = Math.max(0, user.getGreenCoins() - report.getCoinsEarned());
+                user.setGreenCoins(newBalance);
+                userRepository.save(user);
+
+                // Delete associated coin transaction(s) for this report type
+                List<CoinTransaction> relatedTransactions = coinTransactionRepository
+                    .findByUserIdAndReasonContaining(userId, report.getWasteType());
+                if (!relatedTransactions.isEmpty()) {
+                    // Delete the first matching transaction (most specific match)
+                    coinTransactionRepository.delete(relatedTransactions.get(0));
+                }
+            }
+        }
+
+        // Delete the report
+        wasteReportRepository.delete(report);
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Report deleted successfully",
+            "coinsDeducted", ("APPROVED".equals(report.getStatus()) ? report.getCoinsEarned() : 0)
+        ));
     }
 }
