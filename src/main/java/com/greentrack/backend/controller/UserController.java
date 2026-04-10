@@ -108,17 +108,26 @@ public class UserController {
             return response;
         }
 
-        // Try both email and contactNumber variations
-        User user = userRepository.findByEmailOrContactNumber(identifier, identifier).orElse(null);
+        // Normalize identifier
+        String trimmedId = identifier.trim();
 
-        // If not found, try adding or removing +91
+        // Try exact match first (email or stored phone)
+        User user = userRepository.findByEmailOrContactNumber(trimmedId, trimmedId).orElse(null);
+
+        // If not found, try phone number variations
         if (user == null) {
-            String normalizedContact = identifier.trim();
-            if (normalizedContact.matches("^\\d{10}$")) {
-                user = userRepository.findByEmailOrContactNumber("+91" + normalizedContact, "+91" + normalizedContact).orElse(null);
-            } else if (normalizedContact.startsWith("+91")) {
-                String plainContact = normalizedContact.substring(3);
-                user = userRepository.findByEmailOrContactNumber(plainContact, plainContact).orElse(null);
+            if (trimmedId.matches("^\\d{10}$")) {
+                // Try with +91 prefix (most common stored format)
+                user = userRepository.findByEmailOrContactNumber("+91" + trimmedId, "+91" + trimmedId).orElse(null);
+            } else if (trimmedId.startsWith("+91") && trimmedId.length() == 13) {
+                // Stored without +91
+                user = userRepository.findByEmailOrContactNumber(trimmedId.substring(3), trimmedId.substring(3)).orElse(null);
+            } else if (trimmedId.startsWith("91") && trimmedId.length() == 12) {
+                String plain = trimmedId.substring(2);
+                user = userRepository.findByEmailOrContactNumber("+" + trimmedId, "+" + trimmedId).orElse(null);
+                if (user == null) {
+                    user = userRepository.findByEmailOrContactNumber(plain, plain).orElse(null);
+                }
             }
         }
 
