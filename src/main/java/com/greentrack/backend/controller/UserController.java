@@ -111,9 +111,15 @@ public class UserController {
         // Try both email and contactNumber variations
         User user = userRepository.findByEmailOrContactNumber(identifier, identifier).orElse(null);
 
-        // If not found, try adding +91
-        if (user == null && identifier.matches("^\\d{10}$")) {
-            user = userRepository.findByEmailOrContactNumber("+91" + identifier, "+91" + identifier).orElse(null);
+        // If not found, try adding or removing +91
+        if (user == null) {
+            String normalizedContact = identifier.trim();
+            if (normalizedContact.matches("^\\d{10}$")) {
+                user = userRepository.findByEmailOrContactNumber("+91" + normalizedContact, "+91" + normalizedContact).orElse(null);
+            } else if (normalizedContact.startsWith("+91")) {
+                String plainContact = normalizedContact.substring(3);
+                user = userRepository.findByEmailOrContactNumber(plainContact, plainContact).orElse(null);
+            }
         }
 
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
@@ -139,46 +145,28 @@ public class UserController {
     public Map<String, Object> forgotPassword(@RequestBody Map<String, String> request) {
         Map<String, Object> response = new HashMap<>();
 
-        String email = request.get("email");
-        String contactNumber = request.get("contactNumber");
+        String identifier = request.get("identifier");
         String newPassword = request.get("newPassword");
 
         // Validate input
-        if (email == null || email.isBlank() ||
-                contactNumber == null || contactNumber.isBlank() ||
+        if (identifier == null || identifier.isBlank() ||
                 newPassword == null || newPassword.isBlank()) {
             response.put("status", false);
-            response.put("message", "Please provide email, contact number, and new password!");
+            response.put("message", "Please provide identifier (email or phone) and new password!");
             return response;
         }
 
-        // Normalize contact number format
-        String normalizedContact = contactNumber.trim();
-        if (!normalizedContact.startsWith("+91") && normalizedContact.matches("^\\d{10}$")) {
-            normalizedContact = "+91" + normalizedContact;
-        }
+        // Find user by either email or contact number
+        User user = userRepository.findByEmailOrContactNumber(identifier, identifier).orElse(null);
 
-        // Find user by both email and contact number
-        User user = userRepository.findByEmailAndContactNumber(email, normalizedContact).orElse(null);
-
-        // Try without +91 if not found
-        if (user == null && normalizedContact.startsWith("+91")) {
-            String plainContact = normalizedContact.substring(3);
-            user = userRepository.findByEmailAndContactNumber(email, plainContact).orElse(null);
-        }
-
-        // Fallback: Try finding by contactNumber alone (for phone-based recovery)
+        // If not found, try adding or removing +91 prefix for phone numbers
         if (user == null) {
-            user = userRepository.findByContactNumber(normalizedContact).orElse(null);
-
-            // Also try with +91 prefix
-            if (user == null && !normalizedContact.startsWith("+91")) {
-                user = userRepository.findByContactNumber("+91" + normalizedContact).orElse(null);
-            }
-            
-            // Also try without +91 prefix
-            if (user == null && normalizedContact.startsWith("+91")) {
-                user = userRepository.findByContactNumber(normalizedContact.substring(3)).orElse(null);
+            String normalizedContact = identifier.trim();
+            if (normalizedContact.matches("^\\d{10}$")) {
+                user = userRepository.findByEmailOrContactNumber("+91" + normalizedContact, "+91" + normalizedContact).orElse(null);
+            } else if (normalizedContact.startsWith("+91")) {
+                String plainContact = normalizedContact.substring(3);
+                user = userRepository.findByEmailOrContactNumber(plainContact, plainContact).orElse(null);
             }
         }
 

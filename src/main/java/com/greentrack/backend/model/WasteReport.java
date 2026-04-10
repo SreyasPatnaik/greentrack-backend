@@ -5,7 +5,10 @@ import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "waste_reports")
+@Table(name = "waste_reports", indexes = {
+    @Index(name = "idx_waste_status", columnList = "status"),
+    @Index(name = "idx_waste_cleanup", columnList = "cleanupStatus")
+})
 public class WasteReport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
