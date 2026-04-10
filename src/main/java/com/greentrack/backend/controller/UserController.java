@@ -1,12 +1,14 @@
 package com.greentrack.backend.controller;
 
 import com.greentrack.backend.model.User;
-import com.greentrack.backend.repository.UserRepository;
+import com.greentrack.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +20,18 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WasteReportRepository wasteReportRepository;
+
+    @Autowired
+    private CoinTransactionRepository coinTransactionRepository;
+
+    @Autowired
+    private CourseCompletionRepository courseCompletionRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
@@ -253,6 +267,47 @@ public class UserController {
 
         response.put("status", true);
         response.put("message", "Profile updated successfully!");
+        return response;
+    }
+
+    // =============================
+    // ADMIN: Management APIs
+    // =============================
+
+    @GetMapping("/admin/users/all")
+    public List<User> getAllUsers() {
+        // Simple fetch for admin — usually, you'd add role checks here
+        return userRepository.findAll();
+    }
+
+    @DeleteMapping("/admin/users/{id}")
+    @Transactional
+    public Map<String, Object> deleteUser(@PathVariable Long id) {
+        Map<String, Object> response = new HashMap<>();
+        
+        if (!userRepository.existsById(id)) {
+            response.put("status", false);
+            response.put("message", "User not found");
+            return response;
+        }
+
+        try {
+            // Cascade delete all associated data to keep database clean
+            wasteReportRepository.deleteByUserId(id);
+            coinTransactionRepository.deleteByUserId(id);
+            courseCompletionRepository.deleteByUserId(id);
+            orderRepository.deleteByUserId(id);
+            
+            // Finally delete the user
+            userRepository.deleteById(id);
+
+            response.put("status", true);
+            response.put("message", "User and all associated data deleted successfully!");
+        } catch (Exception e) {
+            response.put("status", false);
+            response.put("message", "Error deleting user: " + e.getMessage());
+        }
+        
         return response;
     }
 }

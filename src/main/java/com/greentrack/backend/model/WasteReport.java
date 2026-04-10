@@ -19,6 +19,11 @@ public class WasteReport {
     @JsonIgnore
     private User user;
 
+    @com.fasterxml.jackson.annotation.JsonProperty("userName")
+    public String getUserName() {
+        return user != null ? user.getFullName() : "Unknown User";
+    }
+
     private String wasteType;
     private String severity;
     private String description;

@@ -21,4 +21,6 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Long> 
     // Count ALL reports (regardless of status) grouped by user — for leaderboard total contributions
     @Query("SELECT r.user.id, COUNT(r) FROM WasteReport r GROUP BY r.user.id")
     List<Object[]> countAllReportsGroupedByUser();
+
+    void deleteByUserId(Long userId);
 }

@@ -11,4 +11,5 @@ public interface CoinTransactionRepository extends JpaRepository<CoinTransaction
     List<CoinTransaction> findByUserIdOrderByTimestampDesc(Long userId);
     List<CoinTransaction> findByUserIdAndReasonContaining(Long userId, String reasonFragment);
     void deleteAllByUserIdAndReasonContaining(Long userId, String reasonFragment);
+    void deleteByUserId(Long userId);
 }
